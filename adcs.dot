@@ -1,0 +1,45 @@
+digraph G {
+    graph [fontsize=14 fontname="Verdana bold" compound=true];
+    node [shape=record fontsize=10 fontname="Verdana"];
+    compound = true;
+
+
+    subgraph cluster_0 {
+        label="Thread 0: Localization";
+
+        l_read [label="Read from sensors" group=g1];
+        l_update [label="Update state (Kalman Filter)" group=g1];
+        l_fulfill [label="Fulfill state requests" group=g1];
+
+        l_read -> l_update -> l_fulfill -> l_read;
+    }
+
+    l_fulfill -> "promise<position_state> requestState()" [dir=back ltail=cluster_0];
+
+
+    subgraph cluster_1 {
+        label="Thread 1: Detumbling/positioning";
+
+        p_request [label="Request/update position state"];
+        p_update [label="Update position target"];
+        p_set [label="Calculate/set actuator states (PID)"];
+
+        p_request -> p_update -> p_set -> p_request;
+    }
+
+    p_set -> "promise<bool> setTarget(position_target)" [dir=back ltail=cluster_1];
+
+
+    subgraph cluster_2 {
+        label="Thread 2: Communications";
+
+        c_alert [label="Alert CDH on boot/reset"];
+        c_wait [label="Wait for message on CAN bus"];
+        c_ack [label="Send ACK/NACK (check if request is allowed)"];
+        c_carry [label="Carry out command"];
+        c_response [label="Send response"];
+
+        c_alert -> c_wait -> c_ack -> c_carry -> c_response -> c_wait;
+    }
+
+}
